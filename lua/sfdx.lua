@@ -1,6 +1,5 @@
 local filesystem = require("filesystem")
 local Job = require("plenary.job")
-require("nvterm").setup()
 
 local sfdx = {}
 local function cmd_args(cmd, extension, file_name)
@@ -53,9 +52,23 @@ local function terminal_exec(args, result_filter)
 		cmd_string = cmd_string .. value .. " "
 	end
 
-	--vim.api.nvim_exec(":terminal " .. cmd_string, true)
+	-- vim.api.nvim_exec(":terminal " .. cmd_string, true)
 
-  require("nvterm.terminal").send(cmd_string, "horizontal")
+	local height = 15
+
+	-- Save current window and cursor position
+	local current_win = vim.api.nvim_get_current_win()
+	local current_buf = vim.api.nvim_get_current_buf()
+	local current_cursor = vim.api.nvim_win_get_cursor(current_win)
+
+	-- Open a new terminal buffer in a split
+	vim.cmd("bo " .. height .. " split | terminal " .. cmd_string)
+	vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<C-\\><C-n>", true, false, true), "n", true)
+
+	-- Restore window and cursor position
+	vim.api.nvim_set_current_win(current_win)
+	vim.api.nvim_set_current_buf(current_buf)
+	vim.api.nvim_win_set_cursor(current_win, current_cursor)
 end
 
 local function extractFilePath(filePath, fileType)
@@ -81,7 +94,7 @@ local function ChooseClass(cmd, file_path)
 		["1"] = { type = "ApexClass", cmd = cmd },
 		["2"] = { type = "ApexTrigger", cmd = "apex generate trigger" },
 		["3"] = { type = "ApexPage", cmd = "visualforce generate page" },
-		["4"] = { type = "Aura", cmd = "force:lightning:component:create" },
+		["4"] = { type = "Aura", cmd = "force:lightning:component:cree" },
 		["5"] = { type = "LWC", cmd = "force:lightning:component:create" },
 		["0"] = { type = "Cancel" },
 	}
@@ -119,52 +132,52 @@ local function ChooseClass(cmd, file_path)
 end
 
 local function authorizeOrg(cmd)
-  local orgAlias = vim.fn.input("Enter an org alias: ")
-  local orgUrl = vim.fn.input("Enter a custom login or leave blank to use the default: ")
+	local orgAlias = vim.fn.input("Enter an org alias: ")
+	local orgUrl = vim.fn.input("Enter a custom login or leave blank to use the default: ")
 
-local start_pos = vim.fn.getpos("'<")
-local end_pos = vim.fn.getpos("'>")
+	local start_pos = vim.fn.getpos("'<")
+	local end_pos = vim.fn.getpos("'>")
 
-local lines = {}
-for i = start_pos[2], end_pos[2] do
-  table.insert(lines, vim.fn.getline(i))
-end
+	local lines = {}
+	for i = start_pos[2], end_pos[2] do
+		table.insert(lines, vim.fn.getline(i))
+	end
 
-local selected_text = table.concat(lines, "\n")
+	local selected_text = table.concat(lines, "\n")
 
-print(selected_text)
-  
-  if orgUrl ~= nil and orgUrl ~= "" then
-    return { cmd .. " -a " .. orgAlias .. " --instanceurl " .. orgUrl}
-  else
-    return { cmd .. " -a " .. orgAlias}
-  end
+	print(selected_text)
+
+	if orgUrl ~= nil and orgUrl ~= "" then
+		return { cmd .. " -a " .. orgAlias .. " --instanceurl " .. orgUrl }
+	else
+		return { cmd .. " -a " .. orgAlias }
+	end
 end
 
 local function createProject(cmd)
-  local projectName = vim.fn.input("Enter a project name: ")
-  local projectDir = vim.fn.input("Enter a directory to create: ")
-  
-  if projectDir ~= nil and projectDir ~= "" then
-    return { cmd .. " -n " .. projectName .. " --manifest -d " .. projectDir}
-  else
-    return { cmd .. " -n " .. projectName .. " --manifest"}
-  end
+	local projectName = vim.fn.input("Enter a project name: ")
+	local projectDir = vim.fn.input("Enter a directory to create: ")
+
+	if projectDir ~= nil and projectDir ~= "" then
+		return { cmd .. " -n " .. projectName .. " --manifest -d " .. projectDir }
+	else
+		return { cmd .. " -n " .. projectName .. " --manifest" }
+	end
 end
 
 sfdx.execute_command = function(cmd, result_filter)
 	local file_info = filesystem.get_file_info()
 	local args
-	
-  if cmd == "force:apex:class:create" then
+
+	if cmd == "force:apex:class:create" then
 		args = ChooseClass(cmd, file_info.file_path)
 	elseif cmd == "org login web" then
-    args = authorizeOrg(cmd)
-  elseif cmd =="project generate" then 
-    args = createProject(cmd)
-  elseif cmd == "" then
-    args = execute()
-  else
+		args = authorizeOrg(cmd)
+	elseif cmd == "project generate" then
+		args = createProject(cmd)
+	elseif cmd == "" then
+		args = execute()
+	else
 		args = cmd_args(cmd, file_info.extension, file_info.file_name)
 	end
 
@@ -183,11 +196,11 @@ sfdx.set_default_username = function(name)
 end
 
 sfdx.authorize = function()
-  sfdx.execute_command("org login web", ".")
+	sfdx.execute_command("org login web", ".")
 end
 
 sfdx.createProject = function()
-  sfdx.execute_command("project generate", ".")
+	sfdx.execute_command("project generate", ".")
 end
 
 sfdx.deploy = function()
@@ -195,7 +208,7 @@ sfdx.deploy = function()
 end
 
 sfdx.execute = function()
-  sfdx.execute_command("", ".")
+	sfdx.execute_command("", ".")
 end
 
 sfdx.retrieve = function()
@@ -209,6 +222,4 @@ sfdx.test = function()
 	)
 end
 
-
 return sfdx
-
